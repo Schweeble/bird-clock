@@ -1,27 +1,44 @@
+use std::sync::mpsc::{Sender, Receiver};
+
 use eframe::egui;
 use reqwest::Url;
+use tokio::runtime::Runtime;
 
 mod models;
 
-#[tokio::main]
-async fn main() {
-    // Log to stdout (if you run with `RUST_LOG=debug`).
-    // tracing_subscriber::fmt::init();
+// #[tokio::main]
+// async fn main() {
+//     // Log to stdout (if you run with `RUST_LOG=debug`).
+//     // tracing_subscriber::fmt::init();
 
-    // let options = eframe::NativeOptions {
-    //     initial_window_size: Some(egui::vec2(320.0, 240.0)),
-    //     ..Default::default()
-    // };
-    // eframe::run_native(
-    //     "My egui App",
-    //     options,
-    //     Box::new(|_cc| Box::new(BirdClock::default())),
-    // )
-    let base = "https://xeno-canto.org/api/2/recordings?query=";
+//     // let options = eframe::NativeOptions {
+//     //     initial_window_size: Some(egui::vec2(320.0, 240.0)),
+//     //     ..Default::default()
+//     // };
+//     // eframe::run_native(
+//     //     "My egui App",
+//     //     options,
+//     //     Box::new(|_cc| Box::new(BirdClock::default())),
+//     // )
+//     // let base = "https://xeno-canto.org/api/2/recordings?query=";
 
-    let url: Url = Url::parse((base.to_owned() + "Acorn Woodpecker&page=1").as_str()).expect("couldn't encode");
+//     // let url: Url = Url::parse((base.to_owned() + "Acorn Woodpecker&page=1").as_str()).expect("couldn't encode");
     
-    print!("{}\n", url);
+//     // print!("{}\n", url);
 
-    let resp = reqwest::get(url).await.unwrap();
+//     // let resp = reqwest::get(url).await.unwrap();
+// }
+
+struct ClockApp {
+    tx: Sender<u32>,
+    rx: Receiver<u32>,
+}
+
+fn main() {
+    let rt = Runtime::new().expect("Unable to create Runtime");
+
+    // Enter the runtime so that `tokio::spawn` is available immediately
+    let _enter = rt.enter();
+
+
 }
