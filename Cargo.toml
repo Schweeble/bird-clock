@@ -7,8 +7,12 @@ edition = "2021"
 
 [dependencies]
 chrono = "0.4.23"
-eframe = "0.20.1"
-egui = "0.20.1"
 reqwest = "0.11.13"
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
+eyre = "0.6.8"
+egui = "^0.20"
+wgpu = "0.14.2"
+egui-wgpu = "^0.20"
+eframe = {version = "^0.20", features = ["wgpu"]}
+rodio = "0.16.0"

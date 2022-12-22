@@ -1,74 +1,76 @@
-use std::{sync::mpsc::{Sender, Receiver}, time::Duration};
-use eframe::egui;
+use ::egui::FontDefinitions;
+use eyre::Result;
+use interface::Interface;
 use models::bird::Bird;
 use reqwest::Url;
+use rodio::{Decoder, OutputStream, Sink, Source};
+use std::{
+    fs::File,
+    io::BufReader,
+    path::{Path, PathBuf},
+    sync::mpsc::{Receiver, Sender},
+    time::Duration,
+};
 use tokio::runtime::Runtime;
-use tokio::task;
 
-mod models;
 mod error;
+mod interface;
+mod models;
 mod query;
 
-// #[tokio::main]
-// async fn main() {
-//     // Log to stdout (if you run with `RUST_LOG=debug`).
-//     // tracing_subscriber::fmt::init();
-
-//     // let options = eframe::NativeOptions {
-//     //     initial_window_size: Some(egui::vec2(320.0, 240.0)),
-//     //     ..Default::default()
-//     // };
-//     // eframe::run_native(
-//     //     "My egui App",
-//     //     options,
-//     //     Box::new(|_cc| Box::new(BirdClock::default())),
-//     // )
-//     // let base = "https://xeno-canto.org/api/2/recordings?query=";
-
-//     // let url: Url = Url::parse((base.to_owned() + "Acorn Woodpecker&page=1").as_str()).expect("couldn't encode");
-    
-//     // print!("{}\n", url);
-
-//     // let resp = reqwest::get(url).await.unwrap();
-// }
-
-struct ClockApp {
-    tx: Sender<Bird>,
-    rx: Receiver<Bird>,
-
-    current_bird: Option<Bird>,
-    backup_bird: Option<Bird>,
-
-
-}
-
-#[tokio::main]
-async fn main() {
-    
-    let options = eframe::NativeOptions::default();
+fn main() {
     // Run the GUI in the main thread.
-    eframe::run_native(
-        "Download and show an image with eframe/egui",
-        options,
-        Box::new(|_cc| Box::new(ClockApp::default())),
-    )
-}
-
-impl Default for ClockApp {
-    fn default() -> Self {
-        let (tx, rx) = std::sync::mpsc::channel();
-        Self {
-            tx,
-            rx,
-            current_bird: Some(Bird::default()),
-            backup_bird: Some(Bird::default())
+    {
+        // Silence wgpu log spam (https://github.com/gfx-rs/wgpu/issues/3206)
+        let mut rust_log = std::env::var("RUST_LOG").unwrap_or_else(|_| "info".to_owned());
+        for loud_crate in ["naga", "wgpu_core", "wgpu_hal"] {
+            if !rust_log.contains(&format!("{loud_crate}=")) {
+                rust_log += &format!(",{loud_crate}=warn");
+            }
         }
-
+        std::env::set_var("RUST_LOG", rust_log);
     }
+
+    let rt = Runtime::new().expect("Couldn't start async runtime");
+
+    let _enter = rt.enter();
+
+    std::thread::spawn(move || {
+        rt.block_on(async {
+            run_sound();
+        })
+    });
+
+    let options = eframe::NativeOptions {
+        fullscreen: true,
+        renderer: eframe::Renderer::Wgpu,
+        ..Default::default()
+    };
+
+    eframe::run_native(
+        "Bird Clock",
+        options,
+        Box::new(|cc| Box::new(Interface::new(cc))),
+    );
 }
 
-impl eframe::App for ClockApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {ui.spinner() });
-    }
+fn run_sound() {
+    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+    let sink = Sink::try_new(&stream_handle).unwrap();
+
+    let path = std::env::current_dir().unwrap();
+    println!("The current directory is {}", path.display());
+    let mut path = PathBuf::new();
+    path.push(".");
+    path.push("data");
+    path.push("backup");
+    path.push("XC134880_Rose-breasted_Grosbeak_Pheucticus_ludovicianus");
+    path.set_extension("mp3");
+
+    println!("{}", path.as_path().display());
+    let file = BufReader::new(File::open(path.as_path()).unwrap());
+    let source = Decoder::new(file).unwrap();
+    sink.append(source);
+
+    sink.sleep_until_end();
 }
