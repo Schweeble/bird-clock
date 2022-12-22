@@ -1,10 +1,13 @@
-use std::sync::mpsc::{Sender, Receiver};
-
+use std::{sync::mpsc::{Sender, Receiver}, time::Duration};
 use eframe::egui;
+use models::bird::Bird;
 use reqwest::Url;
 use tokio::runtime::Runtime;
+use tokio::task;
 
 mod models;
+mod error;
+mod query;
 
 // #[tokio::main]
 // async fn main() {
@@ -30,15 +33,42 @@ mod models;
 // }
 
 struct ClockApp {
-    tx: Sender<u32>,
-    rx: Receiver<u32>,
+    tx: Sender<Bird>,
+    rx: Receiver<Bird>,
+
+    current_bird: Option<Bird>,
+    backup_bird: Option<Bird>,
+
+
 }
 
-fn main() {
-    let rt = Runtime::new().expect("Unable to create Runtime");
+#[tokio::main]
+async fn main() {
+    
+    let options = eframe::NativeOptions::default();
+    // Run the GUI in the main thread.
+    eframe::run_native(
+        "Download and show an image with eframe/egui",
+        options,
+        Box::new(|_cc| Box::new(ClockApp::default())),
+    )
+}
 
-    // Enter the runtime so that `tokio::spawn` is available immediately
-    let _enter = rt.enter();
+impl Default for ClockApp {
+    fn default() -> Self {
+        let (tx, rx) = std::sync::mpsc::channel();
+        Self {
+            tx,
+            rx,
+            current_bird: Some(Bird::default()),
+            backup_bird: Some(Bird::default())
+        }
 
+    }
+}
 
+impl eframe::App for ClockApp {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui::CentralPanel::default().show(ctx, |ui| {ui.spinner() });
+    }
 }
