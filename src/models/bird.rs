@@ -1,8 +1,12 @@
 use std::fs::File;
+use std::io::Cursor;
 
+use rodio::{Sink, Decoder};
 use serde::{Serialize, Deserialize};
+use eyre::Result;
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct Bird {
     pub id: String,
     pub gen: String,
@@ -36,4 +40,12 @@ impl Default for Bird {
             file: "http://www.xeno-canto.org/134880/download".into(),
         }
     }
+    // pub async fn get_file(url: String) -> Result<Decoder<Cursor<>>> {
+    //     let response = reqwest::get(url).await?;
+
+    // }
 }
+
+// pub struct BirdDefaults {
+//     pub 
+// }

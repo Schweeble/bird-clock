@@ -38,7 +38,7 @@ impl Interface {
 }
 
 impl eframe::App for Interface {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.set_pixels_per_point(5.0);
         egui::CentralPanel::default()
             .frame(egui::Frame::dark_canvas(&ctx.style()))

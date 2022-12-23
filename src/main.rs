@@ -1,15 +1,10 @@
-use ::egui::FontDefinitions;
-use eyre::Result;
+use egui_wgpu::{WgpuConfiguration, SurfaceErrorAction};
 use interface::Interface;
-use models::bird::Bird;
-use reqwest::Url;
-use rodio::{Decoder, OutputStream, Sink, Source};
+use rodio::{Decoder, OutputStream, Sink};
 use std::{
     fs::File,
     io::BufReader,
-    path::{Path, PathBuf},
-    sync::mpsc::{Receiver, Sender},
-    time::Duration,
+    path::PathBuf, sync::Arc,
 };
 use tokio::runtime::Runtime;
 
@@ -41,9 +36,31 @@ fn main() {
         })
     });
 
+    let wgpu_options = WgpuConfiguration {
+        device_descriptor: wgpu::DeviceDescriptor {
+            label: Some("egui bird clock device"),
+            features: wgpu::Features::default(),
+            limits: wgpu::Limits::downlevel_defaults()
+        },
+        backends: wgpu::Backends::VULKAN | wgpu::Backends::PRIMARY | wgpu::Backends::GL,
+        present_mode: wgpu::PresentMode::AutoVsync,
+        power_preference: wgpu::PowerPreference::LowPower,
+        depth_format: None,
+        on_surface_error: Arc::new(|err| {
+            if err == wgpu::SurfaceError::Outdated {
+                // this error occurs when the app is minimized on windows,
+                // do nothing
+            } else {
+                println!("Dropped frame with error: {}", err);
+            }
+            SurfaceErrorAction::SkipFrame
+        })
+    };
+
     let options = eframe::NativeOptions {
         fullscreen: true,
         renderer: eframe::Renderer::Wgpu,
+        wgpu_options: wgpu_options,
         ..Default::default()
     };
 
