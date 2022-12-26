@@ -5,7 +5,7 @@ use rodio::{Sink, Decoder};
 use serde::{Serialize, Deserialize};
 use eyre::Result;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Bird {
     pub id: String,
@@ -42,7 +42,7 @@ impl Default for Bird {
     }
     // pub async fn get_file(url: String) -> Result<Decoder<Cursor<>>> {
     //     let response = reqwest::get(url).await?;
-
+        
     // }
 }
 

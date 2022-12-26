@@ -1,10 +1,12 @@
 use egui_wgpu::{WgpuConfiguration, SurfaceErrorAction};
+use event::Event;
 use interface::Interface;
+use models::bird::Bird;
 use rodio::{Decoder, OutputStream, Sink};
 use std::{
     fs::File,
     io::BufReader,
-    path::PathBuf, sync::Arc,
+    path::PathBuf, sync::Arc, time::Duration,
 };
 use tokio::runtime::Runtime;
 
@@ -12,6 +14,7 @@ mod error;
 mod interface;
 mod models;
 mod query;
+mod event;
 
 fn main() {
     // Run the GUI in the main thread.
@@ -30,10 +33,31 @@ fn main() {
 
     let _enter = rt.enter();
 
-    std::thread::spawn(move || {
-        rt.block_on(async {
-            run_sound();
-        })
+    let (sound_tx, sound_rx) = std::sync::mpsc::channel();
+    let (bird_tx, bird_rx) = std::sync::mpsc::channel();
+
+    tokio::spawn(async move {
+        loop {
+            let tx = bird_tx.clone();
+            let mut interval = tokio::time::interval(Duration::from_secs(3600));
+            interval.tick().await;
+            query::get_bird(tx).await;
+        }
+    });
+
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_millis(10));
+        loop {
+            if let Ok(e) = sound_rx.try_recv() {
+                match e {
+                    Event::PlaySound(bird) => {
+                        run_sound(bird);
+                    },
+                    _ => {},
+                }
+            }
+            interval.tick().await;
+        }
     });
 
     let wgpu_options = WgpuConfiguration {
@@ -67,11 +91,11 @@ fn main() {
     eframe::run_native(
         "Bird Clock",
         options,
-        Box::new(|cc| Box::new(Interface::new(cc))),
+        Box::new(|cc| Box::new(Interface::new(cc, sound_tx, bird_rx))),
     );
 }
 
-fn run_sound() {
+fn run_sound(bird: Bird) {
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
     let sink = Sink::try_new(&stream_handle).unwrap();
 

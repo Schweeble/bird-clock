@@ -1,6 +1,8 @@
+use std::sync::mpsc::Sender;
+
 use serde::Deserialize;
 
-use crate::models::bird::Bird;
+use crate::{models::bird::Bird, event::Event};
 
 #[derive(Deserialize)]
 pub struct QueryResponse {
@@ -9,4 +11,8 @@ pub struct QueryResponse {
     pub page: u32,
     pub num_pages: u32,
     pub recordings: Vec<Bird>
+}
+
+pub async fn get_bird(bird_tx: Sender<Event>) {
+    
 }
